@@ -2,14 +2,15 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
+import { ThemeProvider } from "@/components/theme-provider"
+import { Nav } from "@/components/nav"
 import { LanguageProvider } from "@/contexts/language-context"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "VideoGen AI - Intelligent Video Generation Platform",
-  description: "AI-powered automatic video generation for website workflows",
-  generator: "v0.dev",
+  title: "Video AI",
+  description: "视频转写平台",
 }
 
 export default function RootLayout({
@@ -18,9 +19,19 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="zh" suppressHydrationWarning>
       <body className={inter.className} suppressHydrationWarning>
-        <LanguageProvider>{children}</LanguageProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <LanguageProvider>
+            <Nav />
+            {children}
+          </LanguageProvider>
+        </ThemeProvider>
       </body>
     </html>
   )

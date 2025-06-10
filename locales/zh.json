@@ -1,0 +1,130 @@
+{
+  "header": {
+    "title": "Video AI",
+    "login": "登录",
+    "logout": "退出登录",
+    "loggingOut": "退出中...",
+    "history": "生成历史",
+    "myAccount": "我的账户",
+    "aiPowered": "AI驱动"
+  },
+  "hero": {
+    "title": "智能视频生成平台",
+    "subtitle": "基于Playwright的AI驱动网站工作流程自动视频生成"
+  },
+  "mode": {
+    "urlOnly": {
+      "title": "仅URL模式",
+      "description": "仅提供网站URL，AI自动分析并生成视频",
+      "feature1": "自动页面分析",
+      "feature2": "智能交互识别",
+      "feature3": "快速生成"
+    },
+    "urlPrompt": {
+      "title": "URL+提示模式",
+      "description": "提供URL和详细提示，获得更精确的视频内容",
+      "feature1": "精确控制",
+      "feature2": "自定义工作流程",
+      "feature3": "高质量输出"
+    },
+    "codeAware": {
+      "title": "代码感知模式",
+      "description": "结合GitHub代码分析，生成最准确的演示视频",
+      "feature1": "代码结构分析",
+      "feature2": "智能元素定位",
+      "feature3": "最高成功率"
+    }
+  },
+  "common": {
+    "successRate": "成功率"
+  },
+  "config": {
+    "title": "配置生成参数",
+    "description": "根据选择的模式配置相应参数",
+    "websiteUrl": "网站URL",
+    "taskDescription": "任务描述",
+    "workflowHint": "工作流程提示",
+    "keyElements": "关键元素",
+    "githubRepo": "GitHub仓库"
+  },
+  "placeholder": {
+    "url": "https://example.com",
+    "task": "演示用户注册流程",
+    "workflow": "1. 点击注册按钮\n2. 填写表单\n3. 提交注册",
+    "elements": "注册按钮, 用户名输入框, 密码输入框, 提交按钮",
+    "github": "https://github.com/username/repo"
+  },
+  "tab": {
+    "urlOnly": "仅URL",
+    "urlPrompt": "URL+提示",
+    "codeAware": "代码感知"
+  },
+  "action": {
+    "generate": "生成视频",
+    "preview": "预览配置"
+  },
+  "video": {
+    "generationComplete": "视频生成完成",
+    "newGeneration": "新建生成",
+    "metadata": "视频元数据",
+    "duration": "时长",
+    "resolution": "分辨率",
+    "size": "文件大小",
+    "format": "格式",
+    "created": "创建时间",
+    "actions": "操作",
+    "download": "下载视频",
+    "share": "分享视频",
+    "embedCode": "获取嵌入代码",
+    "autoSaved": "视频已自动保存到您的账户",
+    "notSupported": "您的浏览器不支持视频播放"
+  },
+  "preview": {
+    "title": "配置预览",
+    "description": "查看当前配置的详细信息",
+    "selectedMode": "已选择模式",
+    "configDetails": "配置详情",
+    "notSet": "未设置",
+    "jsonConfig": "JSON配置",
+    "copy": "复制",
+    "copied": "已复制",
+    "validation": "配置验证"
+  },
+  "home": {
+    "title": "视频转写",
+    "description": "上传视频文件，我们将为您生成文字记录",
+    "uploadButton": "选择视频文件",
+    "dragDropText": "或将文件拖放到此处",
+    "supportedFormats": "支持的格式：MP4, WebM, MOV",
+    "maxFileSize": "最大文件大小：100MB",
+    "uploading": "上传中...",
+    "processing": "处理中...",
+    "error": "错误",
+    "success": "成功"
+  },
+  "login": {
+    "title": "登录",
+    "description": "登录您的账户以继续",
+    "email": "邮箱",
+    "password": "密码",
+    "submit": "登录",
+    "loading": "登录中...",
+    "noAccount": "还没有账户？",
+    "register": "立即注册",
+    "error": "登录失败",
+    "success": "登录成功"
+  },
+  "register": {
+    "title": "注册",
+    "description": "创建新账户",
+    "email": "邮箱",
+    "password": "密码",
+    "confirmPassword": "确认密码",
+    "submit": "注册",
+    "loading": "注册中...",
+    "hasAccount": "已有账户？",
+    "login": "立即登录",
+    "error": "注册失败",
+    "success": "注册成功，请检查邮箱验证"
+  }
+} 

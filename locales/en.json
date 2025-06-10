@@ -1,0 +1,130 @@
+{
+    "header": {
+      "title": "Video AI",
+      "login": "Login",
+      "logout": "Logout",
+      "loggingOut": "Logging out...",
+      "history": "Generation History",
+      "myAccount": "My Account",
+      "aiPowered": "AI Powered"
+    },
+    "hero": {
+      "title": "Intelligent Video Generation Platform",
+      "subtitle": "AI-powered automatic video generation for website workflows using Playwright"
+    },
+    "mode": {
+      "urlOnly": {
+        "title": "URL Only Mode",
+        "description": "Provide only website URL, AI automatically analyzes and generates video",
+        "feature1": "Automatic page analysis",
+        "feature2": "Smart interaction recognition",
+        "feature3": "Quick generation"
+      },
+      "urlPrompt": {
+        "title": "URL + Prompt Mode",
+        "description": "Provide URL and detailed prompts for more precise video content",
+        "feature1": "Precise control",
+        "feature2": "Custom workflows",
+        "feature3": "High-quality output"
+      },
+      "codeAware": {
+        "title": "Code-Aware Mode",
+        "description": "Combine GitHub code analysis to generate the most accurate demo videos",
+        "feature1": "Code structure analysis",
+        "feature2": "Smart element targeting",
+        "feature3": "Highest success rate"
+      }
+    },
+    "common": {
+      "successRate": "Success Rate"
+    },
+    "config": {
+      "title": "Configure Generation Parameters",
+      "description": "Configure parameters according to selected mode",
+      "websiteUrl": "Website URL",
+      "taskDescription": "Task Description",
+      "workflowHint": "Workflow Hint",
+      "keyElements": "Key Elements",
+      "githubRepo": "GitHub Repository"
+    },
+    "placeholder": {
+      "url": "https://example.com",
+      "task": "Demonstrate user registration process",
+      "workflow": "1. Click register button\n2. Fill form\n3. Submit registration",
+      "elements": "Register button, username input, password input, submit button",
+      "github": "https://github.com/username/repo"
+    },
+    "tab": {
+      "urlOnly": "URL Only",
+      "urlPrompt": "URL + Prompt",
+      "codeAware": "Code Aware"
+    },
+    "action": {
+      "generate": "Generate Video",
+      "preview": "Preview Config"
+    },
+    "video": {
+      "generationComplete": "Video Generation Complete",
+      "newGeneration": "New Generation",
+      "metadata": "Video Metadata",
+      "duration": "Duration",
+      "resolution": "Resolution",
+      "size": "File Size",
+      "format": "Format",
+      "created": "Created",
+      "actions": "Actions",
+      "download": "Download Video",
+      "share": "Share Video",
+      "embedCode": "Get Embed Code",
+      "autoSaved": "Video automatically saved to your account",
+      "notSupported": "Your browser does not support the video tag"
+    },
+    "preview": {
+      "title": "Configuration Preview",
+      "description": "View detailed information about current configuration",
+      "selectedMode": "Selected Mode",
+      "configDetails": "Configuration Details",
+      "notSet": "Not Set",
+      "jsonConfig": "JSON Configuration",
+      "copy": "Copy",
+      "copied": "Copied",
+      "validation": "Configuration Validation"
+    },
+    "home": {
+      "title": "Video Transcription",
+      "description": "Upload a video file and we'll generate a transcript for you",
+      "uploadButton": "Choose Video File",
+      "dragDropText": "or drag and drop here",
+      "supportedFormats": "Supported formats: MP4, WebM, MOV",
+      "maxFileSize": "Max file size: 100MB",
+      "uploading": "Uploading...",
+      "processing": "Processing...",
+      "error": "Error",
+      "success": "Success"
+    },
+    "login": {
+      "title": "Login",
+      "description": "Login to your account to continue",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Login",
+      "loading": "Logging in...",
+      "noAccount": "Don't have an account?",
+      "register": "Register now",
+      "error": "Login failed",
+      "success": "Login successful"
+    },
+    "register": {
+      "title": "Register",
+      "description": "Create a new account",
+      "email": "Email",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "submit": "Register",
+      "loading": "Registering...",
+      "hasAccount": "Already have an account?",
+      "login": "Login now",
+      "error": "Registration failed",
+      "success": "Registration successful, please check your email for verification"
+    }
+  }

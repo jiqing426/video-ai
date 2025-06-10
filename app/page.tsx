@@ -213,31 +213,6 @@ export default function VideoGenerationPlatform() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
-      {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-                <Video className="w-4 h-4 text-white" />
-              </div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                {t("header.title")}
-              </h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link href="/history">
-                <Button variant="outline" size="sm" className="gap-2">
-                  <History className="w-4 h-4" />
-                  生成历史
-                </Button>
-              </Link>
-              <LanguageSwitcher />
-            </div>
-          </div>
-        </div>
-      </header>
-
       <div className="container mx-auto px-4 py-8">
         {videoMetadata ? (
           <VideoResult metadata={videoMetadata} onClose={resetGeneration} />
@@ -301,10 +276,6 @@ export default function VideoGenerationPlatform() {
                     <Target className="w-5 h-5 mr-2" />
                     {t("config.title")}
                   </CardTitle>
-                  <div className="flex items-center gap-2">
-                    <AspectRatio className="w-4 h-4 text-gray-500" />
-                    <span className="text-sm font-medium text-gray-700">视频比例:</span>
-                  </div>
                 </div>
                 <CardDescription>{t("config.description")}</CardDescription>
               </CardHeader>

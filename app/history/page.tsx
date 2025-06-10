@@ -1,6 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
+import { useLanguage } from "@/contexts/language-context"
+import { getGenerationHistory, deleteGenerationHistory } from "@/lib/generation-history"
+import { GenerationHistory } from "@/types/generation-history"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,133 +22,47 @@ import {
   Square,
   X,
 } from "lucide-react"
-import { useLanguage } from "@/contexts/language-context"
 import { VideoPlayer } from "@/components/video-player"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
-
-interface VideoRecord {
-  id: string
-  title: string
-  description: string
-  videoUrl: string
-  thumbnailUrl: string
-  duration: string
-  resolution: string
-  size: string
-  format: string
-  mode: "url-only" | "url-prompt" | "code-aware"
-  createdAt: string
-  views: number
-  status: "completed" | "processing" | "failed"
-}
+import { toast } from "@/components/ui/use-toast"
 
 export default function HistoryPage() {
   const { t } = useLanguage()
-  const [records, setRecords] = useState<VideoRecord[]>([])
-  const [filteredRecords, setFilteredRecords] = useState<VideoRecord[]>([])
+  const [records, setRecords] = useState<GenerationHistory[]>([])
+  const [filteredRecords, setFilteredRecords] = useState<GenerationHistory[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [filterMode, setFilterMode] = useState<string>("all")
   const [filterStatus, setFilterStatus] = useState<string>("all")
-  const [selectedVideo, setSelectedVideo] = useState<VideoRecord | null>(null)
+  const [selectedVideo, setSelectedVideo] = useState<GenerationHistory | null>(null)
   const [isPlayerOpen, setIsPlayerOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [selectedVideos, setSelectedVideos] = useState<string[]>([])
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  // 从本地存储加载历史记录
+  // 加载历史记录
   useEffect(() => {
-    const loadHistory = () => {
-      try {
-        const historyString = localStorage.getItem("videoHistory")
-        if (historyString) {
-          const history = JSON.parse(historyString)
-          setRecords(history)
-          setFilteredRecords(history)
-        } else {
-          // 如果没有历史记录，使用模拟数据
-          setRecords(getMockRecords())
-          setFilteredRecords(getMockRecords())
-        }
-      } catch (error) {
-        console.error("加载历史记录失败:", error)
-        // 出错时使用模拟数据
-        setRecords(getMockRecords())
-        setFilteredRecords(getMockRecords())
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    // 延迟加载以模拟网络请求
-    setTimeout(loadHistory, 1000)
+    loadHistory()
   }, [])
 
-  // 获取模拟历史记录数据
-  const getMockRecords = (): VideoRecord[] => {
-    return [
-      {
-        id: "1",
-        title: "用户注册流程演示",
-        description: "展示网站用户注册的完整流程",
-        videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-        thumbnailUrl: "/placeholder.svg?height=180&width=320",
-        duration: "02:15",
-        resolution: "1920x1080",
-        size: "8.5 MB",
-        format: "MP4",
-        mode: "url-prompt",
-        createdAt: "2024-01-15T10:30:00Z",
-        views: 156,
-        status: "completed",
-      },
-      {
-        id: "2",
-        title: "产品购买流程",
-        description: "电商网站购买流程录制",
-        videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
-        thumbnailUrl: "/placeholder.svg?height=180&width=320",
-        duration: "01:45",
-        resolution: "1280x720",
-        size: "5.2 MB",
-        format: "MP4",
-        mode: "code-aware",
-        createdAt: "2024-01-14T15:20:00Z",
-        views: 89,
-        status: "completed",
-      },
-      {
-        id: "3",
-        title: "登录功能演示",
-        description: "用户登录界面操作演示",
-        videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-        thumbnailUrl: "/placeholder.svg?height=180&width=320",
-        duration: "01:20",
-        resolution: "1280x720",
-        size: "3.8 MB",
-        format: "MP4",
-        mode: "url-only",
-        createdAt: "2024-01-13T09:15:00Z",
-        views: 234,
-        status: "completed",
-      },
-      {
-        id: "4",
-        title: "表单提交流程",
-        description: "正在处理中...",
-        videoUrl: "",
-        thumbnailUrl: "/placeholder.svg?height=180&width=320",
-        duration: "--:--",
-        resolution: "1920x1080",
-        size: "-- MB",
-        format: "MP4",
-        mode: "url-prompt",
-        createdAt: "2024-01-16T14:00:00Z",
-        views: 0,
-        status: "processing",
-      },
-    ]
+  const loadHistory = async () => {
+    try {
+      setIsLoading(true)
+      const data = await getGenerationHistory()
+      setRecords(data)
+      setFilteredRecords(data)
+      setError(null)
+    } catch (err) {
+      console.error("加载历史记录失败:", err)
+      setError("加载历史记录失败，请稍后重试")
+      setRecords([]) // 清空数据，避免显示旧的或模拟数据
+      setFilteredRecords([])
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   // 搜索和过滤
@@ -156,8 +73,8 @@ export default function HistoryPage() {
     if (searchTerm) {
       filtered = filtered.filter(
         (record) =>
-          record.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          record.description.toLowerCase().includes(searchTerm.toLowerCase()),
+          record.video_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (record.description && record.description.toLowerCase().includes(searchTerm.toLowerCase())),
       )
     }
 
@@ -179,36 +96,59 @@ export default function HistoryPage() {
     setSelectedVideos([])
   }, [filteredRecords])
 
-  const handleDelete = (id: string) => {
-    if (confirm("确定要删除这个视频吗？")) {
-      // 从记录中删除
-      const updatedRecords = records.filter((record) => record.id !== id)
-      setRecords(updatedRecords)
+  const handleDelete = async (id: string) => {
+    if (!confirm("确定要删除这个视频吗？此操作不可撤销。")) {
+      return
+    }
 
-      // 更新本地存储
-      try {
-        localStorage.setItem("videoHistory", JSON.stringify(updatedRecords))
-      } catch (error) {
-        console.error("保存历史记录失败:", error)
-      }
+    try {
+      setIsDeleting(true)
+      await deleteGenerationHistory(id)
+      setRecords(records.filter((r) => r.id !== id))
+      setFilteredRecords(filteredRecords.filter((r) => r.id !== id))
+      toast({
+        title: "删除成功",
+        description: "视频已从历史记录中删除",
+      })
+    } catch (error) {
+      console.error("删除失败:", error)
+      toast({
+        title: "删除失败",
+        description: "请稍后重试",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeleting(false)
     }
   }
 
-  const handleBatchDelete = () => {
+  const handleBatchDelete = async () => {
     if (selectedVideos.length === 0) return
 
     const message = `确定要删除选中的 ${selectedVideos.length} 个视频吗？此操作不可撤销。`
-    if (confirm(message)) {
-      const updatedRecords = records.filter((record) => !selectedVideos.includes(record.id))
-      setRecords(updatedRecords)
-      setSelectedVideos([])
+    if (!confirm(message)) {
+      return
+    }
 
-      // 更新本地存储
-      try {
-        localStorage.setItem("videoHistory", JSON.stringify(updatedRecords))
-      } catch (error) {
-        console.error("保存历史记录失败:", error)
-      }
+    try {
+      setIsDeleting(true)
+      await Promise.all(selectedVideos.map((id) => deleteGenerationHistory(id)))
+      setRecords(records.filter((record) => !selectedVideos.includes(record.id)))
+      setFilteredRecords(filteredRecords.filter((record) => !selectedVideos.includes(record.id)))
+      setSelectedVideos([])
+      toast({
+        title: "批量删除成功",
+        description: `${selectedVideos.length} 个视频已从历史记录中删除。`,
+      })
+    } catch (error) {
+      console.error("批量删除失败:", error)
+      toast({
+        title: "批量删除失败",
+        description: "请稍后重试",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -232,54 +172,61 @@ export default function HistoryPage() {
     }
   }
 
-  const handleDownload = async (record: VideoRecord) => {
+  const handleDownload = async (record: GenerationHistory) => {
     if (record.status !== "completed") return
 
     try {
-      const response = await fetch(record.videoUrl)
+      const response = await fetch(record.video_url)
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = `${record.title}.mp4`
+      a.download = `${record.video_name}.${record.video_format}`
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
+      toast({
+        title: "下载成功",
+        description: `文件 ${record.video_name}.${record.video_format} 已下载。`,
+      })
     } catch (error) {
-      console.error("Download failed:", error)
-      alert("下载失败，请稍后重试")
+      console.error("下载失败:", error)
+      toast({
+        title: "下载失败",
+        description: "请稍后重试",
+        variant: "destructive",
+      })
     }
   }
 
-  const handleShare = (record: VideoRecord) => {
-    const shareUrl = `${window.location.origin}/video/${encodeURIComponent(record.videoUrl)}`
-    navigator.clipboard.writeText(shareUrl).then(() => {
-      alert("分享链接已复制到剪贴板")
-    })
+  const handleShare = async (record: GenerationHistory) => {
+    try {
+      await navigator.clipboard.writeText(record.video_url)
+      toast({
+        title: "已复制链接",
+        description: "视频链接已复制到剪贴板",
+      })
+    } catch (error) {
+      console.error("复制链接失败:", error)
+      toast({
+        title: "复制失败",
+        description: "请手动复制视频链接",
+        variant: "destructive",
+      })
+    }
   }
 
-  const playVideo = (record: VideoRecord) => {
+  const playVideo = (record: GenerationHistory) => {
     if (record.status === "completed") {
       setSelectedVideo(record)
       setIsPlayerOpen(true)
-
-      // 更新观看次数
-      const updatedRecords = records.map((r) => {
-        if (r.id === record.id) {
-          return { ...r, views: r.views + 1 }
-        }
-        return r
+    } else {
+      toast({
+        title: "视频未完成",
+        description: "视频仍在处理中或已失败，无法播放。",
+        variant: "destructive",
       })
-
-      setRecords(updatedRecords)
-
-      // 更新本地存储
-      try {
-        localStorage.setItem("videoHistory", JSON.stringify(updatedRecords))
-      } catch (error) {
-        console.error("更新观看次数失败:", error)
-      }
     }
   }
 
@@ -357,6 +304,14 @@ export default function HistoryPage() {
           </div>
         </div>
       </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive" className="m-4">
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
     )
   }
 
@@ -439,7 +394,7 @@ export default function HistoryPage() {
                 {selectedVideos.length > 0 && (
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-600">已选择 {selectedVideos.length} 个视频</span>
-                    <Button variant="destructive" size="sm" onClick={handleBatchDelete}>
+                    <Button variant="destructive" size="sm" onClick={handleBatchDelete} disabled={isDeleting}>
                       <Trash2 className="w-4 h-4 mr-1" />
                       批量删除
                     </Button>
@@ -475,6 +430,7 @@ export default function HistoryPage() {
                     size="sm"
                     onClick={() => handleDelete(record.id)}
                     className="absolute top-2 right-2 z-10 text-red-500 hover:text-red-700 hover:bg-red-50 p-1 h-8 w-8 rounded-full"
+                    disabled={isDeleting}
                   >
                     <X className="w-4 h-4" />
                   </Button>
@@ -495,7 +451,7 @@ export default function HistoryPage() {
                     )}
                     <img
                       src={record.thumbnailUrl || "/placeholder.svg"}
-                      alt={record.title}
+                      alt={record.video_name}
                       className="w-40 h-24 object-cover rounded"
                     />
                     {record.status === "completed" && selectedVideos.length === 0 && (
@@ -517,28 +473,28 @@ export default function HistoryPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex-1 min-w-0 mr-4">
-                        <h3 className="text-lg font-semibold mb-1 truncate pr-10">{record.title}</h3>
+                        <h3 className="text-lg font-semibold mb-1 truncate pr-10">{record.video_name}</h3>
                         <p className="text-gray-600 mb-2 text-sm line-clamp-2">{record.description}</p>
 
                         <div className="flex flex-wrap gap-2 mb-2">
-                          <Badge className={getModeColor(record.mode)}>{getModeText(record.mode)}</Badge>
-                          <Badge className={getStatusColor(record.status)}>{getStatusText(record.status)}</Badge>
+                          <Badge className={`${getModeColor(record.mode)} pointer-events-none`}>{getModeText(record.mode)}</Badge>
+                          <Badge className={`${getStatusColor(record.status)} pointer-events-none`}>{getStatusText(record.status)}</Badge>
                         </div>
 
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-gray-500 mb-1">
                           <div className="flex items-center">
                             <Clock className="w-3 h-3 mr-1" />
-                            {record.duration}
+                            {Math.round(record.video_duration / 1000)}秒
                           </div>
                           <div className="flex items-center">
                             <Eye className="w-3 h-3 mr-1" />
                             {record.views} 次观看
                           </div>
-                          <div>{record.resolution}</div>
-                          <div>{record.size}</div>
+                          <div>{record.video_resolution}</div>
+                          <div>{Math.round(record.video_size / 1024 / 1024)}MB</div>
                         </div>
 
-                        <div className="text-xs text-gray-400">{new Date(record.createdAt).toLocaleString()}</div>
+                        <div className="text-xs text-gray-400">{new Date(record.created_at).toLocaleString()}</div>
                       </div>
                     </div>
 
@@ -592,10 +548,10 @@ export default function HistoryPage() {
         <Dialog open={isPlayerOpen} onOpenChange={closePlayer}>
           <DialogContent className="max-w-4xl">
             <DialogHeader>
-              <DialogTitle>{selectedVideo?.title}</DialogTitle>
+              <DialogTitle>{selectedVideo?.video_name}</DialogTitle>
             </DialogHeader>
             {selectedVideo && isPlayerOpen && (
-              <VideoPlayer videoUrl={selectedVideo.videoUrl} thumbnailUrl={selectedVideo.thumbnailUrl} />
+              <VideoPlayer videoUrl={selectedVideo.video_url} thumbnailUrl={selectedVideo.thumbnailUrl || "/placeholder.svg"} />
             )}
           </DialogContent>
         </Dialog>

@@ -6,6 +6,8 @@ import { detectEnvironment } from "@/lib/environment-detector"
 import { PlaywrightRecorder } from "@/lib/playwright-recorder"
 import { generateActionsFromAI } from "@/lib/ai-action-generator"
 import { getTestVideoUrls, generateColorfulThumbnail } from "@/lib/video-generator"
+import { createClient } from '@/lib/supabase/client'
+import { createGenerationHistory } from '@/lib/generation-history'
 
 interface GenerateVideoRequest {
   mode: "url-only" | "url-prompt" | "code-aware"
@@ -198,6 +200,22 @@ async function performAIRecording(
       contentType: "image/jpeg",
     })
 
+    // 保存到历史记录
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (user) {
+      await createGenerationHistory({
+        video_url: videoUrl,
+        video_name: `${body.task} - AI Recording`,
+        video_size: videoBuffer.length,
+        video_duration: 30000, // 30秒
+        video_format: "webm",
+        video_resolution: `${viewport.width}x${viewport.height}`,
+        status: "completed"
+      })
+    }
+
     return {
       videoUrl,
       thumbnailUrl,
@@ -286,6 +304,22 @@ async function performAISimulation(body: GenerateVideoRequest): Promise<any> {
       contentType: "image/jpeg",
     })
 
+    // 保存到历史记录
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (user) {
+      await createGenerationHistory({
+        video_url: selectedVideoUrl,
+        video_name: `${body.task} - AI Simulation`,
+        video_size: 2200000, // 2.1 MB
+        video_duration: 30000, // 30秒
+        video_format: "mp4",
+        video_resolution: getResolutionFromAspectRatio(body.aspectRatio || "16:9"),
+        status: "completed"
+      })
+    }
+
     return {
       videoUrl: selectedVideoUrl,
       thumbnailUrl,
@@ -321,6 +355,22 @@ async function performAISimulation(body: GenerateVideoRequest): Promise<any> {
       access: "public",
       contentType: "image/jpeg",
     })
+
+    // 保存到历史记录
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (user) {
+      await createGenerationHistory({
+        video_url: getTestVideoUrls()[0],
+        video_name: `${body.task} - Basic Demo`,
+        video_size: 2200000, // 2.1 MB
+        video_duration: 30000, // 30秒
+        video_format: "mp4",
+        video_resolution: getResolutionFromAspectRatio(body.aspectRatio || "16:9"),
+        status: "completed"
+      })
+    }
 
     return {
       videoUrl: getTestVideoUrls()[0],
