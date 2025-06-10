@@ -1,16 +1,17 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { VideoPlayer } from "@/components/video-player"
-import { Download, Share2, Code, CheckCircle, Copy, Facebook, Twitter } from "lucide-react"
+import { Download, Share2, Code, CheckCircle, Copy, Facebook, Twitter, Brain } from "lucide-react"
 import { useLanguage } from "@/contexts/language-context"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
 
 interface VideoMetadata {
   videoUrl: string
@@ -20,6 +21,22 @@ interface VideoMetadata {
   size: string
   format: string
   createdAt: string
+  steps?: string[]
+  aiReasoning?: string[]
+  mode?: string
+  task?: string
+  url?: string
+  recordingType?: string
+  simulationNote?: string
+  pageAnalysis?: {
+    title: string
+    elementsFound: {
+      buttons: number
+      inputs: number
+      links: number
+      forms: number
+    }
+  }
 }
 
 interface VideoResultProps {
@@ -36,12 +53,47 @@ export function VideoResult({ metadata, onClose }: VideoResultProps) {
   const [copiedShare, setCopiedShare] = useState(false)
   const [copiedEmbed, setCopiedEmbed] = useState(false)
 
+  // 存储视频历史记录
+  useEffect(() => {
+    if (metadata) {
+      try {
+        // 获取现有历史记录
+        const historyString = localStorage.getItem("videoHistory")
+        const history = historyString ? JSON.parse(historyString) : []
+
+        // 创建新的历史记录项
+        const historyItem = {
+          id: `video-${Date.now()}`,
+          title: metadata.task || "生成的视频",
+          description: `${metadata.mode === "url-only" ? "仅URL模式" : metadata.mode === "url-prompt" ? "URL+提示模式" : "代码感知模式"}`,
+          videoUrl: metadata.videoUrl,
+          thumbnailUrl: metadata.thumbnailUrl,
+          duration: metadata.duration,
+          resolution: metadata.resolution,
+          size: metadata.size,
+          format: metadata.format,
+          mode: metadata.mode,
+          createdAt: metadata.createdAt,
+          views: 1,
+          status: "completed",
+        }
+
+        // 添加到历史记录并保存
+        const updatedHistory = [historyItem, ...history.slice(0, 19)] // 保留最近20条记录
+        localStorage.setItem("videoHistory", JSON.stringify(updatedHistory))
+
+        console.log("✅ 视频历史记录已保存")
+      } catch (error) {
+        console.error("保存历史记录失败:", error)
+      }
+    }
+  }, [metadata])
+
   const handleDownload = async () => {
     setIsDownloading(true)
     setDownloadError(null)
 
     try {
-      // 获取视频文件
       const response = await fetch(metadata.videoUrl)
 
       if (!response.ok) {
@@ -49,18 +101,15 @@ export function VideoResult({ metadata, onClose }: VideoResultProps) {
       }
 
       const blob = await response.blob()
-
-      // 创建下载链接
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.style.display = "none"
       a.href = url
-      a.download = `generated-video-${new Date().getTime()}.mp4`
+      a.download = `${metadata.task || "generated-video"}-${new Date().getTime()}.mp4`
 
       document.body.appendChild(a)
       a.click()
 
-      // 清理
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
     } catch (error) {
@@ -102,7 +151,7 @@ export function VideoResult({ metadata, onClose }: VideoResultProps) {
   }
 
   const shareToSocial = (platform: string) => {
-    const text = encodeURIComponent("查看我用AI生成的视频！")
+    const text = encodeURIComponent(`查看我用AI生成的${metadata.task}演示视频！`)
     const url = encodeURIComponent(shareUrl)
 
     let shareLink = ""
@@ -127,80 +176,124 @@ export function VideoResult({ metadata, onClose }: VideoResultProps) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">{t("video.generationComplete") || "视频生成完成"}</h2>
+        <div>
+          <h2 className="text-2xl font-bold">{t("video.generationComplete") || "视频生成完成"}</h2>
+          <div className="flex items-center gap-2 mt-2">
+            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+              <Brain className="w-3 h-3 mr-1" />
+              {metadata.recordingType === "ai_real_recording"
+                ? "真实录制"
+                : metadata.recordingType === "ai_simulation"
+                  ? "智能模拟"
+                  : "智能生成"}
+            </Badge>
+            {metadata.mode && (
+              <Badge variant="outline">
+                {metadata.mode === "url-only"
+                  ? "仅URL模式"
+                  : metadata.mode === "url-prompt"
+                    ? "URL+提示模式"
+                    : "代码感知模式"}
+              </Badge>
+            )}
+          </div>
+        </div>
         <Button variant="outline" size="sm" onClick={onClose}>
           {t("video.newGeneration") || "新建生成"}
         </Button>
       </div>
 
+      {/* 模拟提示 */}
+      {metadata.simulationNote && (
+        <Alert>
+          <AlertDescription>{metadata.simulationNote}</AlertDescription>
+        </Alert>
+      )}
+
       <VideoPlayer videoUrl={metadata.videoUrl} thumbnailUrl={metadata.thumbnailUrl} />
 
-      <div className="grid md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">{t("video.metadata") || "视频元数据"}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <dl className="space-y-2">
-              <div className="flex justify-between">
-                <dt className="text-sm font-medium text-gray-500">{t("video.duration") || "时长"}</dt>
-                <dd className="text-sm text-gray-900">{metadata.duration}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-sm font-medium text-gray-500">{t("video.resolution") || "分辨率"}</dt>
-                <dd className="text-sm text-gray-900">{metadata.resolution}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-sm font-medium text-gray-500">{t("video.size") || "文件大小"}</dt>
-                <dd className="text-sm text-gray-900">{metadata.size}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-sm font-medium text-gray-500">{t("video.format") || "格式"}</dt>
-                <dd className="text-sm text-gray-900">{metadata.format}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-sm font-medium text-gray-500">{t("video.created") || "创建时间"}</dt>
-                <dd className="text-sm text-gray-900">{new Date(metadata.createdAt).toLocaleString()}</dd>
-              </div>
-            </dl>
-          </CardContent>
-        </Card>
+      {/* 视频详情卡片 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">{t("video.metadata") || "视频元数据"}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid lg:grid-cols-2 gap-6">
+            {/* 左侧：视频元数据 */}
+            <div>
+              <h4 className="font-medium text-gray-900 mb-4">视频信息</h4>
+              <dl className="space-y-3">
+                {metadata.task && (
+                  <div className="flex justify-between">
+                    <dt className="text-sm font-medium text-gray-500">任务描述</dt>
+                    <dd className="text-sm text-gray-900 text-right max-w-xs">{metadata.task}</dd>
+                  </div>
+                )}
+                {metadata.url && (
+                  <div className="flex justify-between">
+                    <dt className="text-sm font-medium text-gray-500">目标网站</dt>
+                    <dd className="text-sm text-gray-900 text-right max-w-xs truncate">{metadata.url}</dd>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <dt className="text-sm font-medium text-gray-500">{t("video.duration") || "时长"}</dt>
+                  <dd className="text-sm text-gray-900">{metadata.duration}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-sm font-medium text-gray-500">{t("video.resolution") || "分辨率"}</dt>
+                  <dd className="text-sm text-gray-900">{metadata.resolution}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-sm font-medium text-gray-500">{t("video.size") || "文件大小"}</dt>
+                  <dd className="text-sm text-gray-900">{metadata.size}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-sm font-medium text-gray-500">{t("video.format") || "格式"}</dt>
+                  <dd className="text-sm text-gray-900">{metadata.format}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-sm font-medium text-gray-500">{t("video.created") || "创建时间"}</dt>
+                  <dd className="text-sm text-gray-900">{new Date(metadata.createdAt).toLocaleString()}</dd>
+                </div>
+              </dl>
+            </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">{t("video.actions") || "操作"}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Button className="w-full gap-2" onClick={handleDownload} disabled={isDownloading}>
-              <Download className="w-4 h-4" />
-              {isDownloading ? "下载中..." : t("video.download") || "下载视频"}
-            </Button>
+            {/* 右侧：操作按钮 */}
+            <div>
+              <h4 className="font-medium text-gray-900 mb-4">操作选项</h4>
+              <div className="space-y-3">
+                <Button className="w-full gap-2" onClick={handleDownload} disabled={isDownloading}>
+                  <Download className="w-4 h-4" />
+                  {isDownloading ? "下载中..." : t("video.download") || "下载视频"}
+                </Button>
 
-            {downloadError && (
-              <Alert variant="destructive">
-                <AlertDescription>{downloadError}</AlertDescription>
-              </Alert>
-            )}
+                <Button variant="outline" className="w-full gap-2" onClick={() => setIsShareDialogOpen(true)}>
+                  <Share2 className="w-4 h-4" />
+                  {t("video.share") || "分享视频"}
+                </Button>
 
-            <Button variant="outline" className="w-full gap-2" onClick={() => setIsShareDialogOpen(true)}>
-              <Share2 className="w-4 h-4" />
-              {t("video.share") || "分享视频"}
-            </Button>
+                <Button variant="outline" className="w-full gap-2" onClick={() => setIsEmbedDialogOpen(true)}>
+                  <Code className="w-4 h-4" />
+                  {t("video.embedCode") || "获取嵌入代码"}
+                </Button>
 
-            <Button variant="outline" className="w-full gap-2" onClick={() => setIsEmbedDialogOpen(true)}>
-              <Code className="w-4 h-4" />
-              {t("video.embedCode") || "获取嵌入代码"}
-            </Button>
+                {downloadError && (
+                  <Alert variant="destructive" className="mt-4">
+                    <AlertDescription>{downloadError}</AlertDescription>
+                  </Alert>
+                )}
 
-            <div className="bg-green-50 p-3 rounded-md mt-4">
-              <div className="flex items-center text-green-800">
-                <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
-                <span className="text-sm">{t("video.autoSaved") || "视频已自动保存到您的账户"}</span>
+                <div className="bg-green-50 p-3 rounded-md mt-4">
+                  <div className="flex items-center text-green-800">
+                    <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
+                    <span className="text-sm">视频已自动保存到您的账户</span>
+                  </div>
+                </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Share Dialog */}
       <Dialog open={isShareDialogOpen} onOpenChange={setIsShareDialogOpen}>

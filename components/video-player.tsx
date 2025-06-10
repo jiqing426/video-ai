@@ -5,7 +5,7 @@ import type React from "react"
 import { useState, useRef, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Play, Pause, Volume2, VolumeX, Download, Maximize, RotateCcw } from "lucide-react"
+import { Play, Pause, Volume2, VolumeX, Download, Maximize, RotateCcw, AlertCircle, RefreshCw } from "lucide-react"
 import { useLanguage } from "@/contexts/language-context"
 
 interface VideoPlayerProps {
@@ -26,6 +26,18 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, onClose }: VideoPlayerProp
   const [isDownloading, setIsDownloading] = useState(false)
   const [isVideoLoaded, setIsVideoLoaded] = useState(false)
   const [videoError, setVideoError] = useState<string | null>(null)
+  const [loadAttempts, setLoadAttempts] = useState(0)
+  const [debugInfo, setDebugInfo] = useState<any>({})
+
+  // 检查视频URL是否有效
+  const isValidVideoUrl = useCallback((url: string) => {
+    try {
+      const urlObj = new URL(url)
+      return urlObj.protocol === "http:" || urlObj.protocol === "https:"
+    } catch {
+      return false
+    }
+  }, [])
 
   // 安全的播放函数
   const safePlay = useCallback(async () => {
@@ -61,7 +73,7 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, onClose }: VideoPlayerProp
         } else if (error.name === "NotSupportedError") {
           setVideoError("不支持的视频格式")
         } else if (error.name === "NotAllowedError") {
-          setVideoError("浏览器阻止了自动播放")
+          setVideoError("浏览器阻止了自动播放，请手动点击播放")
         }
       }
     }
@@ -85,9 +97,107 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, onClose }: VideoPlayerProp
     }
   }, [])
 
+  // 重试加载视频
+  const retryVideoLoad = useCallback(() => {
+    const video = videoRef.current
+    if (!video || loadAttempts >= 3) return
+
+    console.log(`重试加载视频，第 ${loadAttempts + 1} 次`)
+    setLoadAttempts((prev) => prev + 1)
+    setVideoError(null)
+    setIsVideoLoaded(false)
+
+    // 重新设置视频源
+    video.src = videoUrl
+    video.load()
+  }, [videoUrl, loadAttempts])
+
   useEffect(() => {
     const video = videoRef.current
     if (!video) return
+
+    console.log("VideoPlayer: Setting up video with URL:", videoUrl)
+    setDebugInfo((prev: any) => ({ ...prev, videoUrl }))
+
+    // 检查URL有效性
+    if (!isValidVideoUrl(videoUrl)) {
+      setVideoError("无效的视频URL")
+      setDebugInfo((prev: any) => ({ ...prev, error: "无效的视频URL" }))
+      return
+    }
+
+    const handleLoadStart = () => {
+      console.log("VideoPlayer: Load started")
+      setVideoError(null)
+      setDebugInfo((prev: any) => ({ ...prev, loadStarted: true }))
+    }
+
+    const handleLoadedMetadata = () => {
+      if (!document.contains(video)) return
+      console.log("VideoPlayer: Metadata loaded, duration:", video.duration)
+      setDebugInfo((prev: any) => ({ ...prev, metadataLoaded: true, duration: video.duration }))
+
+      if (isFinite(video.duration) && video.duration > 0) {
+        setDuration(video.duration)
+        setIsVideoLoaded(true)
+        setVideoError(null)
+        setLoadAttempts(0)
+      } else {
+        console.warn("VideoPlayer: Invalid duration:", video.duration)
+        setDebugInfo((prev: any) => ({ ...prev, invalidDuration: video.duration }))
+      }
+    }
+
+    const handleLoadedData = () => {
+      if (!document.contains(video)) return
+      console.log("VideoPlayer: Data loaded")
+      setIsVideoLoaded(true)
+      setDebugInfo((prev: any) => ({ ...prev, dataLoaded: true }))
+    }
+
+    const handleCanPlay = () => {
+      if (!document.contains(video)) return
+      console.log("VideoPlayer: Can play")
+      setIsVideoLoaded(true)
+      setVideoError(null)
+      setDebugInfo((prev: any) => ({ ...prev, canPlay: true }))
+    }
+
+    const handleError = (e: Event) => {
+      console.error("VideoPlayer: Video error:", e)
+      const target = e.target as HTMLVideoElement
+      if (target && target.error) {
+        console.error("VideoPlayer: Error details:", {
+          code: target.error.code,
+          message: target.error.message,
+          url: videoUrl,
+        })
+
+        setDebugInfo((prev: any) => ({
+          ...prev,
+          errorCode: target.error.code,
+          errorMessage: target.error.message,
+        }))
+
+        let errorMessage = "视频加载失败"
+        switch (target.error.code) {
+          case target.error.MEDIA_ERR_ABORTED:
+            errorMessage = "视频加载被中止"
+            break
+          case target.error.MEDIA_ERR_NETWORK:
+            errorMessage = "网络错误，无法加载视频"
+            break
+          case target.error.MEDIA_ERR_DECODE:
+            errorMessage = "视频解码失败，格式可能不支持"
+            break
+          case target.error.MEDIA_ERR_SRC_NOT_SUPPORTED:
+            errorMessage = "不支持的视频格式或来源"
+            break
+        }
+        setVideoError(errorMessage)
+      }
+      setIsVideoLoaded(false)
+    }
 
     const handleTimeUpdate = () => {
       if (!document.contains(video)) return
@@ -96,24 +206,6 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, onClose }: VideoPlayerProp
       if (video.duration && isFinite(video.duration)) {
         setProgress((video.currentTime / video.duration) * 100)
       }
-    }
-
-    const handleLoadedMetadata = () => {
-      if (!document.contains(video)) return
-
-      setDuration(video.duration)
-      setIsVideoLoaded(true)
-      setVideoError(null)
-    }
-
-    const handleLoadedData = () => {
-      if (!document.contains(video)) return
-      setIsVideoLoaded(true)
-    }
-
-    const handleCanPlay = () => {
-      if (!document.contains(video)) return
-      setIsVideoLoaded(true)
     }
 
     const handlePlay = () => {
@@ -131,42 +223,46 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, onClose }: VideoPlayerProp
       setIsPlaying(false)
     }
 
-    const handleError = (e: Event) => {
-      console.error("视频加载错误:", e)
-      setVideoError("视频加载失败")
-      setIsVideoLoaded(false)
-    }
-
     const handleAbort = () => {
       console.log("视频加载被中止")
       setIsPlaying(false)
+      setDebugInfo((prev: any) => ({ ...prev, aborted: true }))
     }
 
-    // 添加事件监听器
-    video.addEventListener("timeupdate", handleTimeUpdate)
+    // 添加所有事件监听器
+    video.addEventListener("loadstart", handleLoadStart)
     video.addEventListener("loadedmetadata", handleLoadedMetadata)
     video.addEventListener("loadeddata", handleLoadedData)
     video.addEventListener("canplay", handleCanPlay)
+    video.addEventListener("timeupdate", handleTimeUpdate)
     video.addEventListener("play", handlePlay)
     video.addEventListener("pause", handlePause)
     video.addEventListener("ended", handleEnded)
     video.addEventListener("error", handleError)
     video.addEventListener("abort", handleAbort)
 
+    // 设置视频属性
+    video.crossOrigin = "anonymous"
+    video.preload = "metadata"
+
+    // 设置视频源
+    video.src = videoUrl
+    video.load() // 强制重新加载
+
     // 清理函数
     return () => {
       if (video && document.contains(video)) {
-        video.removeEventListener("timeupdate", handleTimeUpdate)
+        video.removeEventListener("loadstart", handleLoadStart)
         video.removeEventListener("loadedmetadata", handleLoadedMetadata)
         video.removeEventListener("loadeddata", handleLoadedData)
         video.removeEventListener("canplay", handleCanPlay)
+        video.removeEventListener("timeupdate", handleTimeUpdate)
         video.removeEventListener("play", handlePlay)
         video.removeEventListener("pause", handlePause)
         video.removeEventListener("ended", handleEnded)
         video.removeEventListener("error", handleError)
         video.removeEventListener("abort", handleAbort)
 
-        // 安全地停止播放
         try {
           if (!video.paused) {
             video.pause()
@@ -176,7 +272,7 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, onClose }: VideoPlayerProp
         }
       }
     }
-  }, [])
+  }, [videoUrl, isValidVideoUrl]) // 添加 videoUrl 作为依赖
 
   // 组件卸载时的清理
   useEffect(() => {
@@ -195,14 +291,19 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, onClose }: VideoPlayerProp
   }, [])
 
   const togglePlay = useCallback(() => {
-    if (!isVideoLoaded) return
+    if (!isVideoLoaded) {
+      if (videoError && loadAttempts < 3) {
+        retryVideoLoad()
+      }
+      return
+    }
 
     if (isPlaying) {
       safePause()
     } else {
       safePlay()
     }
-  }, [isPlaying, isVideoLoaded, safePlay, safePause])
+  }, [isPlaying, isVideoLoaded, safePlay, safePause, videoError, loadAttempts, retryVideoLoad])
 
   const toggleMute = useCallback(() => {
     const video = videoRef.current
@@ -321,7 +422,7 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, onClose }: VideoPlayerProp
   return (
     <Card className="overflow-hidden w-full max-w-3xl mx-auto">
       <div className="relative bg-black">
-        {thumbnailUrl && !isPlaying && !isVideoLoaded && (
+        {thumbnailUrl && !isPlaying && !isVideoLoaded && !videoError && (
           <img
             src={thumbnailUrl || "/placeholder.svg"}
             alt="Video thumbnail"
@@ -330,10 +431,23 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, onClose }: VideoPlayerProp
         )}
 
         {videoError ? (
-          <div className="w-full aspect-video flex items-center justify-center bg-gray-900 text-white">
+          <div className="w-full aspect-video flex flex-col items-center justify-center bg-gray-900 text-white p-8">
+            <AlertCircle className="w-12 h-12 text-red-400 mb-4" />
             <div className="text-center">
-              <p className="mb-2">视频加载失败</p>
-              <p className="text-sm text-gray-400">{videoError}</p>
+              <p className="mb-2 text-lg font-medium">视频加载失败</p>
+              <p className="text-sm text-gray-400 mb-4">{videoError}</p>
+              {loadAttempts < 3 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={retryVideoLoad}
+                  className="text-white border-white hover:bg-white hover:text-black"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  重试加载 ({loadAttempts}/3)
+                </Button>
+              )}
+              {loadAttempts >= 3 && <div className="text-xs text-gray-500">已尝试 3 次，请检查网络连接或视频源</div>}
             </div>
           </div>
         ) : (
@@ -344,6 +458,7 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, onClose }: VideoPlayerProp
             preload="metadata"
             playsInline
             onClick={togglePlay}
+            crossOrigin="anonymous"
           >
             <source src={videoUrl} type="video/mp4" />
             <source src={videoUrl} type="video/webm" />
@@ -363,7 +478,10 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, onClose }: VideoPlayerProp
         {/* Loading indicator */}
         {!isVideoLoaded && !videoError && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-            <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            <div className="flex flex-col items-center">
+              <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin mb-2"></div>
+              <div className="text-white text-sm">加载中...</div>
+            </div>
           </div>
         )}
       </div>
@@ -386,7 +504,7 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, onClose }: VideoPlayerProp
                 size="sm"
                 className="text-white hover:bg-gray-800 p-1 h-8 w-8"
                 onClick={togglePlay}
-                disabled={!isVideoLoaded}
+                disabled={!isVideoLoaded && !videoError}
               >
                 {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
               </Button>
@@ -438,6 +556,17 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, onClose }: VideoPlayerProp
               </Button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Debug info in development */}
+      {process.env.NODE_ENV === "development" && (
+        <div className="bg-gray-100 p-2 text-xs text-gray-600">
+          <div>Video URL: {videoUrl}</div>
+          <div>Loaded: {isVideoLoaded ? "Yes" : "No"}</div>
+          <div>Error: {videoError || "None"}</div>
+          <div>Load Attempts: {loadAttempts}</div>
+          <div>Debug: {JSON.stringify(debugInfo)}</div>
         </div>
       )}
     </Card>

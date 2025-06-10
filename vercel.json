@@ -1,0 +1,16 @@
+{
+  "functions": {
+    "app/api/generate-video/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/test-recording/route.ts": {
+      "maxDuration": 30
+    },
+    "app/api/environment-check/route.ts": {
+      "maxDuration": 10
+    }
+  },
+  "env": {
+    "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1"
+  }
+}

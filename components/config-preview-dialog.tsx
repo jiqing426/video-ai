@@ -21,9 +21,19 @@ interface ConfigPreviewDialogProps {
   }
 }
 
+// 修复ConfigPreviewDialog组件中可能导致预览被禁用的问题
+
+// 确保onClose处理函数正确实现
 export function ConfigPreviewDialog({ isOpen, onClose, selectedMode, formData }: ConfigPreviewDialogProps) {
   const { t } = useLanguage()
   const [copied, setCopied] = useState(false)
+
+  // 添加正确的关闭处理函数
+  const handleClose = () => {
+    if (typeof onClose === "function") {
+      onClose()
+    }
+  }
 
   const modeConfig = {
     "url-only": {
@@ -79,8 +89,9 @@ export function ConfigPreviewDialog({ isOpen, onClose, selectedMode, formData }:
     }
   }
 
+  // 修改Dialog组件，确保正确处理open和onOpenChange属性
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

@@ -54,9 +54,37 @@ export default function HistoryPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [selectedVideos, setSelectedVideos] = useState<string[]>([])
 
-  // 模拟历史记录数据
+  // 从本地存储加载历史记录
   useEffect(() => {
-    const mockRecords: VideoRecord[] = [
+    const loadHistory = () => {
+      try {
+        const historyString = localStorage.getItem("videoHistory")
+        if (historyString) {
+          const history = JSON.parse(historyString)
+          setRecords(history)
+          setFilteredRecords(history)
+        } else {
+          // 如果没有历史记录，使用模拟数据
+          setRecords(getMockRecords())
+          setFilteredRecords(getMockRecords())
+        }
+      } catch (error) {
+        console.error("加载历史记录失败:", error)
+        // 出错时使用模拟数据
+        setRecords(getMockRecords())
+        setFilteredRecords(getMockRecords())
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    // 延迟加载以模拟网络请求
+    setTimeout(loadHistory, 1000)
+  }, [])
+
+  // 获取模拟历史记录数据
+  const getMockRecords = (): VideoRecord[] => {
+    return [
       {
         id: "1",
         title: "用户注册流程演示",
@@ -118,13 +146,7 @@ export default function HistoryPage() {
         status: "processing",
       },
     ]
-
-    setTimeout(() => {
-      setRecords(mockRecords)
-      setFilteredRecords(mockRecords)
-      setIsLoading(false)
-    }, 1000)
-  }, [])
+  }
 
   // 搜索和过滤
   useEffect(() => {
@@ -159,7 +181,16 @@ export default function HistoryPage() {
 
   const handleDelete = (id: string) => {
     if (confirm("确定要删除这个视频吗？")) {
-      setRecords((prev) => prev.filter((record) => record.id !== id))
+      // 从记录中删除
+      const updatedRecords = records.filter((record) => record.id !== id)
+      setRecords(updatedRecords)
+
+      // 更新本地存储
+      try {
+        localStorage.setItem("videoHistory", JSON.stringify(updatedRecords))
+      } catch (error) {
+        console.error("保存历史记录失败:", error)
+      }
     }
   }
 
@@ -168,8 +199,16 @@ export default function HistoryPage() {
 
     const message = `确定要删除选中的 ${selectedVideos.length} 个视频吗？此操作不可撤销。`
     if (confirm(message)) {
-      setRecords((prev) => prev.filter((record) => !selectedVideos.includes(record.id)))
+      const updatedRecords = records.filter((record) => !selectedVideos.includes(record.id))
+      setRecords(updatedRecords)
       setSelectedVideos([])
+
+      // 更新本地存储
+      try {
+        localStorage.setItem("videoHistory", JSON.stringify(updatedRecords))
+      } catch (error) {
+        console.error("保存历史记录失败:", error)
+      }
     }
   }
 
@@ -224,6 +263,23 @@ export default function HistoryPage() {
     if (record.status === "completed") {
       setSelectedVideo(record)
       setIsPlayerOpen(true)
+
+      // 更新观看次数
+      const updatedRecords = records.map((r) => {
+        if (r.id === record.id) {
+          return { ...r, views: r.views + 1 }
+        }
+        return r
+      })
+
+      setRecords(updatedRecords)
+
+      // 更新本地存储
+      try {
+        localStorage.setItem("videoHistory", JSON.stringify(updatedRecords))
+      } catch (error) {
+        console.error("更新观看次数失败:", error)
+      }
     }
   }
 
