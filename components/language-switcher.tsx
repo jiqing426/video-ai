@@ -19,7 +19,7 @@ export function LanguageSwitcher() {
         <Button variant="outline" size="sm" className="gap-2">
           <Languages className="w-4 h-4" />
           {language === "zh" ? "中文" : "EN"}
-        </Button>
+      </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem
@@ -32,7 +32,7 @@ export function LanguageSwitcher() {
           onClick={() => setLanguage("en")}
           className={language === "en" ? "bg-accent" : ""}
         >
-          English
+              English
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
