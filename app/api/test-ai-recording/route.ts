@@ -75,15 +75,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: false, error: errorMessage }, { status: 500 })
   } finally {
-    // 清理资源
-    if (recorder) {
-      try {
-        await recorder.close()
-      } catch (e) {
-        console.error("Failed to close recorder:", e)
-      }
-    }
-
     if (tempDir) {
       fs.rm(tempDir, { recursive: true, force: true }).catch((e) => {
         console.error("Failed to cleanup temp directory:", e)

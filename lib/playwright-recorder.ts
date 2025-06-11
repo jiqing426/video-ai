@@ -104,10 +104,9 @@ export class PlaywrightRecorder {
           (el) => ({
             text: el.textContent?.trim() || "",
             id: el.id,
-            className: el.className,
             type: el.tagName.toLowerCase(),
             testId: el.getAttribute("data-testid") || el.getAttribute("data-test") || "",
-            visible: el.offsetParent !== null,
+            visible: (el as HTMLElement).offsetParent !== null,
           }),
         ),
         inputs: Array.from(document.querySelectorAll("input, textarea, select")).map((el) => ({
@@ -117,7 +116,7 @@ export class PlaywrightRecorder {
           name: (el as HTMLInputElement).name || "",
           className: el.className,
           testId: el.getAttribute("data-testid") || el.getAttribute("data-test") || "",
-          visible: el.offsetParent !== null,
+          visible: (el as HTMLElement).offsetParent !== null,
         })),
         links: Array.from(document.querySelectorAll("a")).map((el) => ({
           text: el.textContent?.trim() || "",
@@ -125,7 +124,7 @@ export class PlaywrightRecorder {
           id: el.id,
           className: el.className,
           testId: el.getAttribute("data-testid") || el.getAttribute("data-test") || "",
-          visible: el.offsetParent !== null,
+          visible: (el as HTMLElement).offsetParent !== null,
         })),
         forms: Array.from(document.querySelectorAll("form")).map((el) => ({
           id: el.id,
@@ -318,8 +317,8 @@ export class PlaywrightRecorder {
   async getVideoPath(): Promise<string | null> {
     if (!this.page) return null
 
-    const videoPath = await this.page.video()?.path()
-    return videoPath || null
+    const videoPath = (await this.page.video()?.path()) || null
+    return videoPath
   }
 
   async close(): Promise<string | null> {
@@ -327,7 +326,7 @@ export class PlaywrightRecorder {
 
     try {
       if (this.page) {
-        videoPath = await this.page.video()?.path()
+        videoPath = (await this.page.video()?.path()) || null
         await this.page.close()
       }
 

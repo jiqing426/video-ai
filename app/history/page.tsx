@@ -477,8 +477,8 @@ export default function HistoryPage() {
                         <p className="text-gray-600 mb-2 text-sm line-clamp-2">{record.description}</p>
 
                         <div className="flex flex-wrap gap-2 mb-2">
-                          <Badge className={`${getModeColor(record.mode)} pointer-events-none`}>{getModeText(record.mode)}</Badge>
-                          <Badge className={`${getStatusColor(record.status)} pointer-events-none`}>{getStatusText(record.status)}</Badge>
+                          <Badge className={`${getModeColor(record.mode || '')} pointer-events-none`}>{getModeText(record.mode || '')}</Badge>
+                          <Badge className={`${getStatusColor(record.status || '')} pointer-events-none`}>{getStatusText(record.status || '')}</Badge>
                         </div>
 
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-gray-500 mb-1">

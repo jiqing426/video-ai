@@ -167,30 +167,33 @@ export function VideoPlayer({ videoUrl, thumbnailUrl, onClose }: VideoPlayerProp
       console.error("VideoPlayer: Video error:", e)
       const target = e.target as HTMLVideoElement
       if (target && target.error) {
+        // Non-null assertion since we've already checked above
+        const error = target.error!;
+        
         console.error("VideoPlayer: Error details:", {
-          code: target.error.code,
-          message: target.error.message,
+          code: error.code,
+          message: error.message,
           url: videoUrl,
         })
 
         setDebugInfo((prev: any) => ({
           ...prev,
-          errorCode: target.error.code,
-          errorMessage: target.error.message,
+          errorCode: error.code,
+          errorMessage: error.message,
         }))
 
         let errorMessage = "视频加载失败"
-        switch (target.error.code) {
-          case target.error.MEDIA_ERR_ABORTED:
+        switch (error.code) {
+          case error.MEDIA_ERR_ABORTED:
             errorMessage = "视频加载被中止"
             break
-          case target.error.MEDIA_ERR_NETWORK:
+          case error.MEDIA_ERR_NETWORK:
             errorMessage = "网络错误，无法加载视频"
             break
-          case target.error.MEDIA_ERR_DECODE:
+          case error.MEDIA_ERR_DECODE:
             errorMessage = "视频解码失败，格式可能不支持"
             break
-          case target.error.MEDIA_ERR_SRC_NOT_SUPPORTED:
+          case error.MEDIA_ERR_SRC_NOT_SUPPORTED:
             errorMessage = "不支持的视频格式或来源"
             break
         }

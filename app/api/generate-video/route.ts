@@ -6,8 +6,12 @@ import { detectEnvironment } from "@/lib/environment-detector"
 import { PlaywrightRecorder } from "@/lib/playwright-recorder"
 import { generateActionsFromAI } from "@/lib/ai-action-generator"
 import { getTestVideoUrls, generateColorfulThumbnail } from "@/lib/video-generator"
-import { createClient } from '@/lib/supabase/client'
+import { createServerClient } from '@supabase/ssr'
 import { createGenerationHistory } from '@/lib/generation-history'
+import { cookies } from "next/headers"
+
+// 临时方案
+type Database = any
 
 interface GenerateVideoRequest {
   mode: "url-only" | "url-prompt" | "code-aware"
@@ -104,21 +108,6 @@ export async function POST(request: Request) {
       },
       { status: 500 },
     )
-  } finally {
-    // 清理资源
-    if (recorder) {
-      try {
-        await recorder.close()
-      } catch (e) {
-        console.error("Failed to close recorder:", e)
-      }
-    }
-
-    if (tempDir) {
-      fs.rm(tempDir, { recursive: true, force: true }).catch((e) => {
-        console.error("Failed to cleanup temp directory:", e)
-      })
-    }
   }
 }
 
@@ -178,7 +167,6 @@ async function performAIRecording(
 
     // 获取录制的视频
     const rawVideoPath = await recorder.close()
-    // let recorder = null // 标记为已关闭  <- This line was removed because it's setting recorder to null before the finally block.
 
     if (!rawVideoPath) {
       throw new Error("Failed to get recorded video")
@@ -201,7 +189,11 @@ async function performAIRecording(
     })
 
     // 保存到历史记录
-    const supabase = createClient()
+    const supabase = createServerClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { cookies: cookies as any }
+    )
     const { data: { user } } = await supabase.auth.getUser()
     
     if (user) {
@@ -305,7 +297,11 @@ async function performAISimulation(body: GenerateVideoRequest): Promise<any> {
     })
 
     // 保存到历史记录
-    const supabase = createClient()
+    const supabase = createServerClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { cookies: cookies as any }
+    )
     const { data: { user } } = await supabase.auth.getUser()
     
     if (user) {
@@ -357,7 +353,11 @@ async function performAISimulation(body: GenerateVideoRequest): Promise<any> {
     })
 
     // 保存到历史记录
-    const supabase = createClient()
+    const supabase = createServerClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { cookies: cookies as any }
+    )
     const { data: { user } } = await supabase.auth.getUser()
     
     if (user) {
