@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { VideoPlayer } from "@/components/video-player"
@@ -12,6 +12,8 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
+import { createClient } from '@/lib/supabase/client'
+import { createGenerationHistory } from '@/lib/generation-history'
 
 interface VideoMetadata {
   videoUrl: string
@@ -28,6 +30,7 @@ interface VideoMetadata {
   url?: string
   recordingType?: string
   simulationNote?: string
+  aspectRatio: string
   pageAnalysis?: {
     title: string
     elementsFound: {
@@ -52,42 +55,6 @@ export function VideoResult({ metadata, onClose }: VideoResultProps) {
   const [downloadError, setDownloadError] = useState<string | null>(null)
   const [copiedShare, setCopiedShare] = useState(false)
   const [copiedEmbed, setCopiedEmbed] = useState(false)
-
-  // 存储视频历史记录
-  useEffect(() => {
-    if (metadata) {
-      try {
-        // 获取现有历史记录
-        const historyString = localStorage.getItem("videoHistory")
-        const history = historyString ? JSON.parse(historyString) : []
-
-        // 创建新的历史记录项
-        const historyItem = {
-          id: `video-${Date.now()}`,
-          title: metadata.task || "生成的视频",
-          description: `${metadata.mode === "url-only" ? "仅URL模式" : metadata.mode === "url-prompt" ? "URL+提示模式" : "代码感知模式"}`,
-          videoUrl: metadata.videoUrl,
-          thumbnailUrl: metadata.thumbnailUrl,
-          duration: metadata.duration,
-          resolution: metadata.resolution,
-          size: metadata.size,
-          format: metadata.format,
-          mode: metadata.mode,
-          createdAt: metadata.createdAt,
-          views: 1,
-          status: "completed",
-        }
-
-        // 添加到历史记录并保存
-        const updatedHistory = [historyItem, ...history.slice(0, 19)] // 保留最近20条记录
-        localStorage.setItem("videoHistory", JSON.stringify(updatedHistory))
-
-        console.log("✅ 视频历史记录已保存")
-      } catch (error) {
-        console.error("保存历史记录失败:", error)
-      }
-    }
-  }, [metadata])
 
   const handleDownload = async () => {
     setIsDownloading(true)

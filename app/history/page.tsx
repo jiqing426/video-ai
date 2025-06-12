@@ -51,14 +51,15 @@ export default function HistoryPage() {
   const loadHistory = async () => {
     try {
       setIsLoading(true)
+      setError(null)
       const data = await getGenerationHistory()
+      console.log('加载到的历史记录:', data)
       setRecords(data)
       setFilteredRecords(data)
-      setError(null)
     } catch (err) {
       console.error("加载历史记录失败:", err)
       setError("加载历史记录失败，请稍后重试")
-      setRecords([]) // 清空数据，避免显示旧的或模拟数据
+      setRecords([])
       setFilteredRecords([])
     } finally {
       setIsLoading(false)

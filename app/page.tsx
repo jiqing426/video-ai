@@ -32,6 +32,8 @@ import Link from "next/link"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 // 导入新的PreviewButton组件
 import { PreviewButton } from "@/components/preview-button"
+import { createClient } from '@/lib/supabase/client'
+import { createGenerationHistory } from '@/lib/generation-history'
 
 export default function VideoGenerationPlatform() {
   const { t } = useLanguage()
@@ -180,8 +182,40 @@ export default function VideoGenerationPlatform() {
         throw new Error(result.error || "视频生成失败")
       }
 
-      setVideoMetadata(result.data)
       setRecordingSteps((prev) => [...prev, "视频生成完成！"])
+      
+      // 保存生成历史
+      try {
+        console.log("开始保存生成历史...")
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        
+        if (user) {
+          console.log("用户已登录，准备保存历史记录...")
+          const historyData = {
+            video_url: result.data.videoUrl,
+            video_name: formData.task || "生成的视频",
+            video_size: parseInt(result.data.size) * 1024 * 1024,
+            video_duration: parseInt(result.data.duration.split(':')[0]) * 60 + parseInt(result.data.duration.split(':')[1]),
+            video_format: result.data.format.toLowerCase(),
+            video_resolution: result.data.resolution,
+            status: "completed",
+            mode: selectedMode || "url-only",
+            user_id: user.id,
+            email: user.email || "",
+            aspect_ratio: formData.aspectRatio || "16:9"
+          }
+          console.log("保存历史记录数据:", historyData)
+          await createGenerationHistory(historyData)
+          console.log("✅ 视频历史记录已保存到数据库")
+        } else {
+          console.log("⚠️ 用户未登录，无法保存历史记录")
+        }
+      } catch (error) {
+        console.error("保存历史记录失败:", error)
+      }
+
+      setVideoMetadata(result.data)
     } catch (err: any) {
       console.error("❌ 生成错误:", err)
 

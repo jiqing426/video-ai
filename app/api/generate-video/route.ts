@@ -6,7 +6,7 @@ import { detectEnvironment } from "@/lib/environment-detector"
 import { PlaywrightRecorder } from "@/lib/playwright-recorder"
 import { generateActionsFromAI } from "@/lib/ai-action-generator"
 import { getTestVideoUrls, generateColorfulThumbnail } from "@/lib/video-generator"
-import { createServerClient } from '@supabase/ssr'
+import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
 import { createGenerationHistory } from '@/lib/generation-history'
 import { cookies } from "next/headers"
 
@@ -77,11 +77,75 @@ export async function POST(request: Request) {
         tempDir,
         MAX_EXECUTION_TIME - (Date.now() - startTime),
       )
+      
+      // 保存生成历史
+      try {
+        console.log("开始保存生成历史...")
+        const supabase = createServerComponentClient({ cookies })
+        const { data: { user } } = await supabase.auth.getUser()
+        
+        if (user) {
+          console.log("用户已登录，准备保存历史记录...")
+          const historyData = {
+            video_url: result.videoUrl,
+            video_name: body.task || "生成的视频",
+            video_size: parseInt(result.size) * 1024 * 1024,
+            video_duration: parseInt(result.duration.split(':')[0]) * 60 + parseInt(result.duration.split(':')[1]),
+            video_format: result.format.toLowerCase(),
+            video_resolution: result.resolution,
+            status: "completed",
+            mode: body.mode || "url-only",
+            user_id: user.id,
+            email: user.email || "",
+            aspect_ratio: body.aspectRatio || "16:9"
+          }
+          console.log("保存历史记录数据:", historyData)
+          await createGenerationHistory(historyData)
+          console.log("✅ 视频历史记录已保存到数据库")
+        } else {
+          console.log("⚠️ 用户未登录，无法保存历史记录")
+        }
+      } catch (error) {
+        console.error("保存历史记录失败:", error)
+      }
+      
       return NextResponse.json({ success: true, data: result })
     } else {
       // 智能模拟模式 - 仍然使用AI生成步骤，但不进行真实录制
       console.log("🎭 Using AI-powered simulation...")
       const result = await performAISimulation(body)
+      
+      // 保存生成历史
+      try {
+        console.log("开始保存生成历史...")
+        const supabase = createServerComponentClient({ cookies })
+        const { data: { user } } = await supabase.auth.getUser()
+        
+        if (user) {
+          console.log("用户已登录，准备保存历史记录...")
+          const historyData = {
+            video_url: result.videoUrl,
+            video_name: body.task || "生成的视频",
+            video_size: parseInt(result.size) * 1024 * 1024,
+            video_duration: parseInt(result.duration.split(':')[0]) * 60 + parseInt(result.duration.split(':')[1]),
+            video_format: result.format.toLowerCase(),
+            video_resolution: result.resolution,
+            status: "completed",
+            mode: body.mode || "url-only",
+            user_id: user.id,
+            email: user.email || "",
+            aspect_ratio: body.aspectRatio || "16:9"
+          }
+          console.log("保存历史记录数据:", historyData)
+          await createGenerationHistory(historyData)
+          console.log("✅ 视频历史记录已保存到数据库")
+        } else {
+          console.log("⚠️ 用户未登录，无法保存历史记录")
+        }
+      } catch (error) {
+        console.error("保存历史记录失败:", error)
+      }
+      
       return NextResponse.json({ success: true, data: result })
     }
   } catch (error) {
@@ -188,26 +252,6 @@ async function performAIRecording(
       contentType: "image/jpeg",
     })
 
-    // 保存到历史记录
-    const supabase = createServerClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { cookies: cookies as any }
-    )
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (user) {
-      await createGenerationHistory({
-        video_url: videoUrl,
-        video_name: `${body.task} - AI Recording`,
-        video_size: videoBuffer.length,
-        video_duration: 30000, // 30秒
-        video_format: "webm",
-        video_resolution: `${viewport.width}x${viewport.height}`,
-        status: "completed"
-      })
-    }
-
     return {
       videoUrl,
       thumbnailUrl,
@@ -296,26 +340,6 @@ async function performAISimulation(body: GenerateVideoRequest): Promise<any> {
       contentType: "image/jpeg",
     })
 
-    // 保存到历史记录
-    const supabase = createServerClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { cookies: cookies as any }
-    )
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (user) {
-      await createGenerationHistory({
-        video_url: selectedVideoUrl,
-        video_name: `${body.task} - AI Simulation`,
-        video_size: 2200000, // 2.1 MB
-        video_duration: 30000, // 30秒
-        video_format: "mp4",
-        video_resolution: getResolutionFromAspectRatio(body.aspectRatio || "16:9"),
-        status: "completed"
-      })
-    }
-
     return {
       videoUrl: selectedVideoUrl,
       thumbnailUrl,
@@ -351,26 +375,6 @@ async function performAISimulation(body: GenerateVideoRequest): Promise<any> {
       access: "public",
       contentType: "image/jpeg",
     })
-
-    // 保存到历史记录
-    const supabase = createServerClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { cookies: cookies as any }
-    )
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (user) {
-      await createGenerationHistory({
-        video_url: getTestVideoUrls()[0],
-        video_name: `${body.task} - Basic Demo`,
-        video_size: 2200000, // 2.1 MB
-        video_duration: 30000, // 30秒
-        video_format: "mp4",
-        video_resolution: getResolutionFromAspectRatio(body.aspectRatio || "16:9"),
-        status: "completed"
-      })
-    }
 
     return {
       videoUrl: getTestVideoUrls()[0],

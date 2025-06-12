@@ -1,5 +1,5 @@
 export interface GenerationHistory {
-  id: string
+  id: number
   user_id: string
   video_url: string
   video_name: string
@@ -7,13 +7,11 @@ export interface GenerationHistory {
   video_duration: number
   video_format: string
   video_resolution: string
-  status: 'completed' | 'processing' | 'failed'
+  status: string
+  mode: string
   created_at: string
-  updated_at: string
-  description?: string
-  mode?: "url-only" | "url-prompt" | "code-aware"
-  thumbnailUrl?: string
-  views?: number
+  email: string
+  aspect_ratio: string
 }
 
 export interface CreateGenerationHistoryInput {
@@ -23,5 +21,9 @@ export interface CreateGenerationHistoryInput {
   video_duration: number
   video_format: string
   video_resolution: string
-  status?: 'completed' | 'processing' | 'failed'
+  status: string
+  mode: string
+  user_id: string
+  email: string
+  aspect_ratio?: string
 } 

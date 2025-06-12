@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
 import Link from "next/link"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createClient } from "@/lib/supabase/client"
 import { useRouter, useSearchParams } from "next/navigation"
 
 export default function LoginPage() {
@@ -18,7 +18,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
-  const supabase = createClientComponentClient()
+  const supabase = createClient()
 
   // 显示注册成功消息
   useEffect(() => {
@@ -34,17 +34,25 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
       if (error) throw error
 
-      // 获取重定向URL，如果没有则返回首页
-      const redirectTo = searchParams.get("redirect") || "/"
-      router.push(redirectTo)
-      router.refresh()
+      if (data.session) {
+        // 确保会话被正确设置
+        await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        })
+
+        // 获取重定向URL，如果没有则返回首页
+        const redirectTo = searchParams.get("redirect") || "/"
+        router.push(redirectTo)
+        router.refresh()
+      }
     } catch (error: any) {
       setError(error.message)
     } finally {

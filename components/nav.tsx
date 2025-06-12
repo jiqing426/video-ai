@@ -2,13 +2,13 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createClient } from "@/lib/supabase/client"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { useState, useEffect } from "react"
-import { Video, History, User, LogOut } from "lucide-react"
+import { useTheme } from "next-themes"
+import { Moon, Sun, Video, History, User, LogOut } from "lucide-react"
 import { LanguageSwitcher } from "@/components/language-switcher"
 import { useLanguage } from "@/contexts/language-context"
-import { Session } from "@supabase/supabase-js"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,45 +17,60 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import type { Session } from '@supabase/supabase-js'
 
 export function Nav() {
-  const [loading, setLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userEmail, setUserEmail] = useState<string | null>(null)
-  const [isOpen, setIsOpen] = useState(false)
   const router = useRouter()
-  const supabase = createClientComponentClient()
+  const { theme, setTheme } = useTheme()
+  const supabase = createClient()
   const { t } = useLanguage()
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      setIsLoggedIn(!!session)
-      setUserEmail(session?.user?.email || null)
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        setIsLoggedIn(!!session)
+        setUserEmail(session?.user?.email || null)
+      } catch (error) {
+        console.error('Session check error:', error)
+      }
     }
-    checkAuth()
 
-    // 监听认证状态变化
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: string, session: Session | null) => {
+    checkSession()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event: string, session: Session | null) => {
       setIsLoggedIn(!!session)
       setUserEmail(session?.user?.email || null)
+      router.refresh()
     })
 
     return () => {
       subscription.unsubscribe()
     }
-  }, [supabase.auth])
+  }, [router, supabase])
 
-  const handleSignOut = async () => {
-    setLoading(true)
+  const handleLogout = async () => {
+    setIsLoading(true)
     try {
       await supabase.auth.signOut()
-      // 强制刷新页面以确保状态更新
-      window.location.href = "/login"
+      router.push('/')
+      router.refresh()
     } catch (error) {
-      console.error("Error signing out:", error)
+      console.error('Logout error:', error)
     } finally {
-      setLoading(false)
+      setIsLoading(false)
+    }
+  }
+
+  const handleHistoryClick = (e: React.MouseEvent) => {
+    if (!isLoggedIn) {
+      e.preventDefault()
+      router.push('/login?redirect=/history')
     }
   }
 
@@ -76,14 +91,12 @@ export function Nav() {
           <div className="flex items-center space-x-4">
             <LanguageSwitcher />
             {isLoggedIn ? (
-              <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+              <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button 
                     variant="outline" 
                     size="sm" 
                     className="gap-2 hover:bg-accent"
-                    onMouseEnter={() => setIsOpen(true)}
-                    onMouseLeave={() => setIsOpen(false)}
                   >
                     <User className="w-4 h-4" />
                     {userEmail}
@@ -93,25 +106,23 @@ export function Nav() {
                   align="end" 
                   className="w-56"
                   sideOffset={8}
-                  onMouseEnter={() => setIsOpen(true)}
-                  onMouseLeave={() => setIsOpen(false)}
                 >
                   <DropdownMenuLabel>{t("header.myAccount")}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href="/history" className="flex items-center gap-2 cursor-pointer">
+                    <Link href="/history" className="flex items-center gap-2 cursor-pointer" onClick={handleHistoryClick}>
                       <History className="w-4 h-4" />
                       {t("header.history")}
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
-                    onClick={handleSignOut}
-                    disabled={loading}
+                    onClick={handleLogout}
+                    disabled={isLoading}
                     className="text-red-600 focus:text-red-600 cursor-pointer"
                   >
                     <LogOut className="w-4 h-4 mr-2" />
-                    {loading ? t("header.loggingOut") : t("header.logout")}
+                    {isLoading ? t("header.loggingOut") : t("header.logout")}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -124,6 +135,13 @@ export function Nav() {
                 {t("header.login")}
               </Button>
             )}
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            >
+              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </Button>
           </div>
         </div>
       </div>
